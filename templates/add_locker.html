@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Locker</title>
+</head>
+<body>
+    <h2>Add a New Locker</h2>
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <form action="/add_locker" method="POST">
+        <label for="locker_number">Locker Number:</label>
+        <input type="text" id="locker_number" name="locker_number" required>
+        <button type="submit">Add Locker</button>
+    </form>
+
+    <a href="/">Back to Home</a>
+</body>
+</html>
