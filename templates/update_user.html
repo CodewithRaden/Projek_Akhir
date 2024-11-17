@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update User</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Update User</h2>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" value="{{ user['username'] }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="pin" class="form-label">PIN</label>
+                <input type="password" class="form-control" id="pin" name="pin" value="{{ user['pin'] }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="rfid_tag" class="form-label">RFID Tag</label>
+                <input type="text" class="form-control" id="rfid_tag" name="rfid_tag" value="{{ user['rfid_tag'] }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+            <a href="{{ url_for('manage_users') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>

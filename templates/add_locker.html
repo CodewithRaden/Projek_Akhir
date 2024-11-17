@@ -4,20 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Locker</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f0f0f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: white;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 600px;
+            animation: fadeInUp 1.5s ease-in-out;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            animation: zoomIn 1.5s ease-in-out;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 1.1rem;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+
+        /* Button-35 Styles */
+        .button-35 {
+            align-items: center;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;
+            box-sizing: border-box;
+            color: #121212;
+            cursor: pointer;
+            display: inline-flex;
+            flex: 1 1 auto;
+            font-family: Inter, sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            justify-content: center;
+            line-height: 1;
+            margin: 0;
+            outline: none;
+            padding: 1rem 1.2rem;
+            text-align: center;
+            text-decoration: none;
+            transition: box-shadow .2s, -webkit-box-shadow .2s;
+            white-space: nowrap;
+            border: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            width:450px
+        }
+
+        .button-35:hover {
+            box-shadow: #121212 0 0 0 3px, transparent 0 0 0 0;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            font-size: 1rem;
+            text-decoration: none;
+            color: #007bff;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h2>Add a New Locker</h2>
+    <div class="container">
+        <h2>Add a New Locker</h2>
 
-    {% if message %}
-        <p>{{ message }}</p>
-    {% endif %}
+        {% if message %}
+            <p>{{ message }}</p>
+        {% endif %}
 
-    <form action="/add_locker" method="POST">
-        <label for="locker_number">Locker Number:</label>
-        <input type="text" id="locker_number" name="locker_number" required>
-        <button type="submit">Add Locker</button>
-    </form>
+        <form action="/add_locker" method="POST">
+            <div class="form-group">
+                <label for="locker_number">Locker Number:</label>
+                <input type="text" id="locker_number" name="locker_number" required>
+            </div>
 
-    <a href="/">Back to Home</a>
+            <button type="submit" class="button-35">Add Locker</button>
+        </form>
+
+        <a href="/index" class="back-link">Back to Home</a>
+    </div>
 </body>
 </html>

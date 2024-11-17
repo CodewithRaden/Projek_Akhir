@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Users</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #eaeff3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 95%;
+            max-width: 1100px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 26px;
+            letter-spacing: 1px;
+        }
+        
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .button-35 {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #47BA7F;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            text-decoration: none;
+        }
+        
+        .button-35:hover {
+            box-shadow: #121212 0 0 0 3px, transparent 0 0 0 0;
+            transform: translateY(-2px);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #f7fafc;
+        }
+        
+        thead {
+            background-color: #007bff;
+            color: #ffffff;
+            font-size: 16px;
+        }
+        
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 15px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+        
+        tbody tr:hover {
+            background-color: #e9f2ff;
+        }
+        
+        .pagination {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .pagination a {
+            padding: 8px 14px;
+            border: 1px solid #007bff;
+            color: #007bff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .pagination a.active {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+        
+        .pagination a.disabled {
+            pointer-events: none;
+            color: #bbb;
+            border-color: #bbb;
+        }
+        
+        .pagination a:hover:not(.active) {
+            background-color: #e9f2ff;
+        }
+        
+        @media (max-width: 768px) {
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        
+            .container {
+                width: 100%;
+                padding: 20px;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="button-container">
+            <a href="/index" class="button-35">🏠 Back to Home</a>
+            <a href="{{ url_for('show_register') }}" class="button-35">📝 Register User</a>
+        </div>
+
+        <h1>Registered Users</h1>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>RFID Tag</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user['username'] }}</td>
+                    <td>{{ user['rfid_tag'] }}</td>
+                    <td>
+                        <a href="{{ url_for('update_user', user_id=user['id']) }}" class="button-35">Edit</a>
+                        <form action="{{ url_for('delete_user', user_id=user['id']) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="button-35" onclick="return confirm('Are you sure?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

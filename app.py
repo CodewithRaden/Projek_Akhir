@@ -1,15 +1,43 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, session, redirect, url_for,flash
 import sqlite3
 from datetime import datetime
 import pytz
 
 app = Flask(__name__)
+app.secret_key = 'matherfaker' 
 local_timezone = pytz.timezone('Asia/Jakarta')
 
-# Route untuk halaman indeks
+
 @app.route('/')
+def home():
+     return render_template('home.html')
+
+
+@app.route('/index')
 def index():
-    return render_template('index.html')
+    if 'admin_logged_in' in session and session['admin_logged_in']:
+        return render_template('index.html', is_admin=True)
+    return render_template('index.html', is_admin=False)
+
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        admin_username = request.form['username']
+        admin_password = request.form['password']
+        
+        if admin_username == 'admin' and admin_password == 'password':
+            session['admin_logged_in'] = True
+            return redirect(url_for('index'))
+        else:
+            return render_template('admin_login.html', error="Invalid credentials")
+    
+    return render_template('admin_login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('index'))
+
 
 # Koneksi ke database
 def get_db_connection():
@@ -52,11 +80,17 @@ def register_user():
         cursor.execute('INSERT INTO users (username, pin, rfid_tag) VALUES (?, ?, ?)', 
                        (username, pin, rfid_tag))
         conn.commit()
-        return jsonify({'message': 'User registered successfully!'}), 201
+        message = 'User registered successfully!'
+        status = 'success'
     except sqlite3.IntegrityError:
-        return jsonify({'error': 'Username or RFID tag already exists!'}), 400
+        message = 'Username or RFID tag already exists!'
+        status = 'error'
     finally:
         conn.close()
+
+    # Render the template and pass the message and status to the HTML
+    return render_template('register.html', message=message, status=status)
+
 
 def is_valid_rfid(rfid_tag):
     conn = get_db_connection()
@@ -116,42 +150,158 @@ def rfid_access():
     
     finally:
         conn.close()
+        
+@app.route('/pin_access', methods=['POST'])
+def pin_access():
+    pin = request.form.get('pin')
+    if not pin:
+        return jsonify({"status": "error", "message": "No PIN provided"}), 400
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        conn.execute("BEGIN IMMEDIATE;")
+
+        # Check if the PIN exists in the users table
+        cursor.execute("SELECT * FROM users WHERE pin = ?", (pin,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({"status": "error", "message": "PIN not recognized"}), 403
+
+        user_id = user['id']
+        cursor.execute("SELECT * FROM lockers WHERE (status = 'available') OR (status = 'occupied' AND user_id = ?)", (user_id,))
+        locker = cursor.fetchone()
+
+        if locker:
+            locker_id = locker['id']
+            locker_number = locker['locker_number']
+
+            # Get the current local time
+            access_time = datetime.now(local_timezone).strftime('%Y-%m-%d %H:%M:%S')
+
+            if locker['status'] == 'available':
+                cursor.execute('UPDATE lockers SET status = ?, user_id = ? WHERE id = ?', ('occupied', user_id, locker_id))
+                cursor.execute('INSERT INTO access_logs (user_id, locker_id, access_time, action) VALUES (?, ?, ?, ?)', (user_id, locker_id, access_time, 'open'))
+                message = f"Locker {locker_number} is now occupied by you"
+
+            elif locker['status'] == 'occupied' and locker['user_id'] == user_id:
+                cursor.execute('UPDATE lockers SET status = ?, user_id = NULL WHERE id = ?', ('available', locker_id))
+                cursor.execute('INSERT INTO access_logs (user_id, locker_id, access_time, action) VALUES (?, ?, ?, ?)', (user_id, locker_id, access_time, 'close'))
+                message = f"Locker {locker_number} is now available"
+
+            conn.commit()
+            return jsonify({"status": "success", "message": message})
+
+        else:
+            return jsonify({"status": "error", "message": "Locker is currently occupied by another user"}), 403
+
+    except sqlite3.Error as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        conn.close()
+
+        
+@app.route('/view_users')
+def view_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, rfid_tag FROM users")
+    users = cursor.fetchall()
+    conn.close()
+    return render_template('view_users.html', users=users)
+
+@app.route('/view_lockers')
+def view_lockers():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, locker_number, status FROM lockers")
+    lockers = cursor.fetchall()
+    conn.close()
+    return render_template('view_lockers.html', lockers=lockers)
 
 
 @app.route('/monitoring', methods=['GET'])
 def monitoring():
     user_filter = request.args.get('user')
-    locker_filter = request.args.get('locker')
+    status_filter = request.args.get('status')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    locker_number_filter = request.args.get('locker_number')  # New locker number filter
+    page = request.args.get('page', default=1, type=int)  # Current page, default is 1
+    per_page = 8  # Max data per page
 
-    query = '''
+    # Base queries
+    base_query = '''
     SELECT lockers.locker_number, users.username, users.rfid_tag, access_logs.access_time, access_logs.action
     FROM access_logs
     JOIN users ON access_logs.user_id = users.id
     JOIN lockers ON access_logs.locker_id = lockers.id
     WHERE 1=1
     '''
+
+    count_query = '''
+    SELECT COUNT(*)
+    FROM access_logs
+    JOIN users ON access_logs.user_id = users.id
+    JOIN lockers ON access_logs.locker_id = lockers.id
+    WHERE 1=1
+    '''
+
+    conditions = []
     params = []
 
+    # Add filters if applicable
     if user_filter:
-        query += " AND users.username = ?"
+        conditions.append("users.username = ?")
         params.append(user_filter)
     
-    if locker_filter:
-        query += " AND lockers.locker_number = ?"
-        params.append(locker_filter)
+    if status_filter:
+        if status_filter.lower() == 'open':
+            conditions.append("access_logs.action = 'open'")
+        elif status_filter.lower() == 'close':
+            conditions.append("access_logs.action = 'close'")
+    
+    if start_date:
+        conditions.append("access_logs.access_time >= ?")
+        params.append(start_date + " 00:00:00")
+    
+    if end_date:
+        conditions.append("access_logs.access_time <= ?")
+        params.append(end_date + " 23:59:59")
 
-    query += " ORDER BY access_logs.access_time DESC"
+    if locker_number_filter:
+        conditions.append("lockers.locker_number = ?")
+        params.append(locker_number_filter)
+
+    if conditions:
+        condition_str = " AND " + " AND ".join(conditions)
+        base_query += condition_str
+        count_query += condition_str
+
+    # Add sorting and pagination
+    base_query += " ORDER BY access_logs.access_time DESC LIMIT ? OFFSET ?"
+    params_for_data_query = params + [per_page, (page - 1) * per_page]
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(query, params)
+
+    # Execute data query
+    cursor.execute(base_query, params_for_data_query)
     records = cursor.fetchall()
+
+    # Execute count query
+    cursor.execute(count_query, params)
+    total_records = cursor.fetchone()[0]
+
     conn.close()
 
-    if not records:
-        return "No data available", 404
+    # Calculate total pages
+    total_pages = (total_records + per_page - 1) // per_page
 
+    # Format data for rendering
     monitoring_data = []
     for record in records:
         locker_number, username, rfid_tag, access_time, action = record
@@ -163,7 +313,11 @@ def monitoring():
             'action': action
         })
 
-    return render_template('monitoring.html', monitoring_data=monitoring_data)
+    return render_template('monitoring.html', 
+                           monitoring_data=monitoring_data, 
+                           page=page, 
+                           total_pages=total_pages)
+
 
 
 # Endpoint untuk menambahkan loker
@@ -186,6 +340,100 @@ def add_locker():
         return render_template('add_locker.html', message=message)
 
     return render_template('add_locker.html')  # Menampilkan form untuk menambahkan loker
+
+# CRUD for Users
+@app.route('/users', methods=['GET', 'POST'])
+def manage_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if request.method == 'POST':
+        # Create new user
+        username = request.form['username']
+        pin = request.form['pin']
+        rfid_tag = request.form['rfid_tag']
+        try:
+            cursor.execute('INSERT INTO users (username, pin, rfid_tag) VALUES (?, ?, ?)', 
+                           (username, pin, rfid_tag))
+            conn.commit()
+            flash('User added successfully!', 'success')
+        except sqlite3.IntegrityError:
+            flash('Username or RFID tag already exists!', 'error')
+    cursor.execute('SELECT * FROM users')
+    users = cursor.fetchall()
+    conn.close()
+    return render_template('view_users.html', users=users)
+
+@app.route('/users/update/<int:user_id>', methods=['GET', 'POST'])
+def update_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if request.method == 'POST':
+        # Update user data
+        username = request.form['username']
+        pin = request.form['pin']
+        rfid_tag = request.form['rfid_tag']
+        cursor.execute('UPDATE users SET username = ?, pin = ?, rfid_tag = ? WHERE id = ?', 
+                       (username, pin, rfid_tag, user_id))
+        conn.commit()
+        flash('User updated successfully!', 'success')
+        return redirect(url_for('manage_users'))
+    cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    return render_template('update_user.html', user=user)
+
+@app.route('/users/delete/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    flash('User deleted successfully!', 'success')
+    return redirect(url_for('manage_users'))
+
+# CRUD for Lockers
+@app.route('/lockers', methods=['GET', 'POST'])
+def manage_lockers():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if request.method == 'POST':
+        locker_number = request.form['locker_number']
+        try:
+            cursor.execute('INSERT INTO lockers (locker_number, status) VALUES (?, "available")', (locker_number,))
+            conn.commit()
+            flash('Locker added successfully!', 'success')
+        except sqlite3.IntegrityError:
+            flash('Locker number already exists!', 'error')
+    cursor.execute('SELECT * FROM lockers')
+    lockers = cursor.fetchall()
+    conn.close()
+    return render_template('view_lockers.html', lockers=lockers)
+
+@app.route('/lockers/update/<int:locker_id>', methods=['GET', 'POST'])
+def update_locker(locker_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if request.method == 'POST':
+        locker_number = request.form['locker_number']
+        cursor.execute('UPDATE lockers SET locker_number = ? WHERE id = ?', (locker_number, locker_id))
+        conn.commit()
+        flash('Locker updated successfully!', 'success')
+        return redirect(url_for('manage_lockers'))
+    cursor.execute('SELECT * FROM lockers WHERE id = ?', (locker_id,))
+    locker = cursor.fetchone()
+    conn.close()
+    return render_template('update_locker.html', locker=locker)
+
+@app.route('/lockers/delete/<int:locker_id>', methods=['POST'])
+def delete_locker(locker_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM lockers WHERE id = ?', (locker_id,))
+    conn.commit()
+    conn.close()
+    flash('Locker deleted successfully!', 'success')
+    return redirect(url_for('manage_lockers'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,52 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitoring Smart Locker</title>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
         }
+
+        body {
+            background-color: #f0f0f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 1200px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 28px;
+        }
+
+        .back-button {
+            margin-bottom: 20px;
+        }
+
+        /* Updated button style */
+        .button-35 {
+            align-items: center;
+            background-color: #47BA7F;
+            border-radius: 12px;
+            box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;
+            box-sizing: border-box;
+            color: white;
+            cursor: pointer;
+            display: inline-flex;
+            flex: 1 1 auto;
+            font-family: Inter, sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            justify-content: center;
+            line-height: 1;
+            margin: 0;
+            outline: none;
+            padding: 1rem 1.2rem;
+            text-align: center;
+            text-decoration: none;
+            transition: box-shadow .2s, -webkit-box-shadow .2s;
+            white-space: nowrap;
+            border: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .button-35:hover {
+            box-shadow: #121212 0 0 0 3px, transparent 0 0 0 0;
+            transform: translateY(-2px);
+        }
+
+        form {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        form div {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        form label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        form input,
+        form select {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
         }
-        table, th, td {
-            border: 1px solid black;
+
+        thead {
+            background-color: #007bff;
+            color: white;
         }
-        th, td {
-            padding: 10px;
+
+        th,
+        td {
+            padding: 15px;
             text-align: left;
         }
-        th {
+
+        tbody tr {
+            border-bottom: 1px solid #ddd;
+            transition: background-color 0.3s;
+        }
+
+        tbody tr:hover {
             background-color: #f2f2f2;
+        }
+
+        td {
+            color: #555;
+        }
+
+        .status-label {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-align: center;
+            color: white;
+            width: 100px;
+        }
+
+        .status-open {
+            background-color: #28a745;
+        }
+
+        .status-closed {
+            background-color: #dc3545;
+        }
+
+        .status-in-use {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .pagination {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .pagination a {
+            padding: 10px 15px;
+            border: 1px solid #007bff;
+            color: #007bff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .pagination a.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .pagination a.disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .container {
+                width: 100%;
+                padding: 15px;
+            }
         }
     </style>
 </head>
+
 <body>
-    <h1>Monitoring Smart Locker</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Locker Number</th>
-                <th>Username</th>
-                <th>RFID</th>
-                <th>Access Time</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for data in monitoring_data %}
-            <tr>
-                <td>{{ data.locker_number }}</td>
-                <td>{{ data.username }}</td>
-                <td>{{ data.rfid_tag }}</td>
-                <td>{{ data.access_time }}</td>
-                <td>{{ data.action }}</td>
-            </tr>
+    <div class="container">
+        <div class="back-button">
+            <a href="/index"><button class="button-35">🏠 Back to Home</button></a>
+        </div>
+
+        <h1>Monitoring Lockit</h1>
+
+        <form method="GET" action="/monitoring">
+            <div>
+                <label for="user">Search by Username:</label>
+                <input type="text" id="user" name="user" placeholder="Enter username" value="{{ request.args.get('user') }}">
+            </div>
+            <!-- New filter for locker number -->
+            <div>
+                <label for="locker_number">Locker Number:</label>
+                <input type="text" id="locker_number" name="locker_number" placeholder="Enter locker number" value="{{ request.args.get('locker_number') }}">
+            </div>
+            <div>
+                <label for="status">Filter by Status:</label>
+                <select id="status" name="status">
+                    <option value="">All</option>
+                    <option value="open" {% if request.args.get('status') == 'open' %}selected{% endif %}>Open</option>
+                    <option value="close" {% if request.args.get('status') == 'close' %}selected{% endif %}>Close</option>
+                </select>
+            </div>
+            <div>
+                <label for="start_date">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ request.args.get('start_date') }}">
+            </div>
+            <div>
+                <label for="end_date">End Date:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ request.args.get('end_date') }}">
+            </div>
+            <div>
+                <button class="button-35" type="submit">Apply Filters</button>
+            </div>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Locker Number</th>
+                    <th>Username</th>
+                    <th>RFID</th>
+                    <th>Access Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in monitoring_data %}
+                <tr>
+                    <td>{{ data.locker_number }}</td>
+                    <td>{{ data.username }}</td>
+                    <td>{{ data.rfid_tag }}</td>
+                    <td>{{ data.access_time }}</td>
+                    <td>
+                        <span class="status-label 
+                            {% if data.action == 'open' %}status-open
+                            {% elif data.action == 'close' %}status-closed
+                            {% else %}status-in-use{% endif %}">
+                            {{ data.action }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            {% if page > 1 %}
+                <a href="?page={{ page - 1 }}{% if request.query_string %}&{{ request.query_string|safe }}{% endif %}">Previous</a>
+            {% else %}
+                <a class="disabled">Previous</a>
+            {% endif %}
+
+            {% for p in range(1, total_pages + 1) %}
+                <a href="?page={{ p }}{% if request.query_string %}&{{ request.query_string|safe }}{% endif %}" class="{% if page == p %}active{% endif %}">
+                    {{ p }}
+                </a>
             {% endfor %}
-        </tbody>
-    </table>
+
+            {% if page < total_pages %}
+                <a href="?page={{ page + 1 }}{% if request.query_string %}&{{ request.query_string|safe }}{% endif %}">Next</a>
+            {% else %}
+                <a class="disabled">Next</a>
+            {% endif %}
+        </div>
+    </div>
 </body>
+
+</html>
+
 </html>

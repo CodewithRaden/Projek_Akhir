@@ -1,55 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrasi Pengguna</title>
+    <title>User Register Lockit</title>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
         }
-        form {
-            background: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+        body {
+            background-color: #f0f0f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        input[type="text"], input[type="password"] {
+
+        .form-container {
+            background-color: #fff;
+            width: 400px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="password"] {
             width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            transition: border-color 0.3s;
         }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
         input[type="submit"] {
-            background: #007bff;
-            color: white;
+            width: 100%;
+            background-color: #fff;
+            color: #121212;
             border: none;
-            padding: 10px;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 16px;
             cursor: pointer;
-            border-radius: 4px;
+            box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;
+            transition: box-shadow 0.3s;
         }
+
         input[type="submit"]:hover {
-            background: #0056b3;
+            box-shadow: #121212 0 0 0 3px, transparent 0 0 0 0;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: #0056b3;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            z-index: 1000;
+        }
+
+        .popup.success {
+            border-left: 5px solid green;
+        }
+
+        .popup.error {
+            border-left: 5px solid red;
+        }
+
+        .popup p {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .popup button {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .popup button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
+
 <body>
-    <h2>Registrasi Pengguna</h2>
-    <form action="/register" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required>
+    <div class="form-container">
+        <h2>User Register</h2>
+        <form action="/register" method="POST">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" placeholder="Input username" required>
 
-        <label for="pin">PIN:</label>
-        <input type="password" id="pin" name="pin" minlength="6" maxlength="6" required>
+            <label for="pin">PIN:</label>
+            <input type="password" id="pin" name="pin" minlength="6" maxlength="6" placeholder="6-digit PIN" required>
 
-        <label for="rfid_tag">RFID Tag:</label>
-        <input type="text" id="rfid_tag" name="rfid_tag" required>
+            <label for="rfid_tag">RFID Tag:</label>
+            <input type="text" id="rfid_tag" name="rfid_tag" placeholder="Input RFID Tag" required>
 
-        <input type="submit" value="Daftar">
-    </form>
+            <input type="submit" value="Daftar">
+        </form>
+        <a href="/" class="back-link">Back To Home</a>
+    </div>
+
+    <!-- Popup message container -->
+    <div id="popup" class="popup">
+        <p id="popupMessage"></p>
+        <button onclick="closePopup()">Close</button>
+    </div>
+
+    <script>
+        // Function to show popup message
+        function showPopup(message, status) {
+            var popup = document.getElementById('popup');
+            var popupMessage = document.getElementById('popupMessage');
+
+            popupMessage.innerText = message;
+            popup.classList.add(status); // Adds 'success' or 'error' class
+
+            popup.style.display = 'block';
+        }
+
+        // Function to close popup
+        function closePopup() {
+            var popup = document.getElementById('popup');
+            popup.style.display = 'none';
+            popup.classList.remove('success', 'error'); // Clean up the class
+        }
+
+        // Check if there's a message to display
+        {% if message %}
+        showPopup("{{ message }}", "{{ status }}");
+        {% endif %}
+    </script>
 </body>
+
 </html>

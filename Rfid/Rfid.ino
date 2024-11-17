@@ -11,10 +11,12 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
 
 const char* ssid = "Raden";           // Nama WiFi
 const char* password = "papamamaandus";   // Password WiFi
-const char* serverName = "http://192.168.1.6:5000/rfid";  // IP address server Flask
+const char* serverName = "http://192.168.1.2:5000/rfid";  // IP address server Flask
 
 WiFiClient client;  // WiFiClient
-
+// add loker storage buat maybe fs?? can use get post protocol buat ambil info ke database
+// esp32 local mode? remote?
+// jadi id device itu perlu biar easy assign buat lokernya
 void setup() {
   Serial.begin(115200);
   SPI.begin();

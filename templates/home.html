@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lockit</title>
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                scroll-behavior: smooth;
+            }
+        
+            /* Navbar Styles */
+            .navbar {
+                position: fixed;
+                top: 0;
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 1rem;
+                background-color: #fff;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                z-index: 10;
+            }
+            .navbar-brand {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-weight: bold;
+                font-size: 1.2rem;
+                color: #333;
+            }
+            .navbar-brand img {
+                height: 30px;
+            }
+            .navbar-links {
+                display: flex;
+                gap: 1.5rem;
+            }
+            .navbar-link {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                color: #333;
+                font-size: 0.85rem;
+                text-decoration: none;
+                transition: color 0.3s ease;
+            }
+            .navbar-link img {
+                width: 24px;
+                height: 24px;
+                margin-bottom: 0.25rem;
+            }
+            .navbar-link:hover {
+                color: #47BA7F;
+            }
+            .navbar-link.active {
+                color: #47BA7F;
+            }
+            .menu-toggle {
+                display: none;
+                font-size: 1.5rem;
+                background: none;
+                border: none;
+                cursor: pointer;
+            }
+            
+            @media (max-width: 768px) {
+                .navbar-links {
+                    display: none; /* Hide links by default */
+                    flex-direction: column;
+                    position: absolute;
+                    top: 60px; /* Adjust based on navbar height */
+                    right: 0;
+                    background-color: #fff;
+                    width: 100%;
+                    padding: 1rem 0;
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                }
+            
+                .navbar-links.show {
+                    display: flex; /* Show links when toggle is active */
+                    margin-top: 20px;
+                }
+            
+                .menu-toggle {
+                    display: block;
+                    color: #333;
+                }
+            }
+        
+            /* Section and Content Styling */
+            .section {
+                padding: 4rem 1rem;
+                min-height: 80vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .content {
+                width: 100%;
+                max-width: 1000px;
+                text-align: center;          
+            }
+        
+            /* Home Section Styling */
+            #home {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                padding-top: 0;
+                text-align: center;
+            }
+            .home-title {
+                font-size: 1.9rem;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 0.5rem;
+            }
+            .home-subtitle {
+                font-size: 1.5rem;
+                color: #47BA7F;
+                margin-bottom: 1rem;
+            }
+            .home-section .content {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                max-width: 900px;
+            }
+            .button-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1rem;
+                flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
+            }
+        
+            /* Schematic Section Styling */
+            #schematic {
+             
+            }
+            
+            /* Button Styles */
+            .button-35 {
+                align-items: center;
+                background-color: #47BA7F;
+                color: white;
+                border-radius: 12px;
+                box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;
+                cursor: pointer;
+                display: inline-flex;
+                justify-content: center;
+                font-family: Inter, sans-serif;
+                font-size: 1.2rem;
+                font-weight: 700;
+                padding: 1rem 1.2rem;
+                text-align: center;
+                text-decoration: none;
+                transition: box-shadow 0.3s ease, transform 0.3s ease;
+                border: 0;
+                user-select: none;
+                margin: 0.5rem;
+            }
+        
+            .button-35:hover {
+                box-shadow: #121212 0 0 0 3px, transparent 0 0 0 0;
+                transform: scale(1.05);
+                background-color: black;
+            }
+        
+            /* Footer Styling */
+            .footer {
+                background-color: #333;
+                color: #ffffff;
+                padding: 1.5rem;
+                text-align: center;
+                font-size: 0.9rem;
+                position: relative;
+                bottom: 0;
+                width: 100%;
+            }
+        
+            .footer-content p {
+                margin: 0.5rem 0;
+            }
+            .footer .social-icons {
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                margin-top: 1rem;
+            }
+            .footer .social-icons a img {
+                width: 24px;
+                height: 24px;
+                transition: transform 0.3s ease;
+            }
+            .footer .social-icons a:hover img {
+                transform: scale(1.2);
+            }
+        
+            /* Responsive Adjustments */
+            @media (max-width: 768px) {
+                .navbar {
+                    padding: 1rem;
+                    flex-direction: column;
+                }
+                .navbar-links {
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+                .home-title {
+                    font-size: 1.5rem;
+                }
+                .home-subtitle {
+                    font-size: 1.2rem;
+                }
+                .button-35 {
+                    font-size: 1rem;
+                    padding: 0.8rem 1rem;
+                }
+            }
+        
+            @media (max-width: 480px) {
+                .navbar-brand {
+                    font-size: 1rem;
+                }
+                .button-35 {
+                    font-size: 0.9rem;
+                    padding: 0.7rem 0.9rem;
+                }
+                .home-title {
+                    font-size: 1.2rem;
+                }
+                .home-subtitle {
+                    font-size: 1rem;
+                }
+            }
+    </style>
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet"> 
+
+    <!-- Icon Font Stylesheet -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="static/lib/animate/animate.min.css" rel="stylesheet">
+    <link href="static/lib/lightbox/css/lightbox.min.css" rel="stylesheet">
+    <link href="static/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="static/logo-nobg.png" alt="Logo">
+            <span>Lockit</span>
+        </div>
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <div class="navbar-links">
+            <a href="#home" class="navbar-link active">
+                <img src="static/home-icon.png" alt="Home">
+                <span>Home</span>
+            </a>
+            <a href="#about" class="navbar-link">
+                <img src="static/about-icon.png" alt="About">
+                <span>About</span>
+            </a>
+            <a href="#schematic" class="navbar-link">
+                <img src="static/schematics-icon.png" alt="Schematic">
+                <span>Our Work</span>
+            </a>
+            <a href="#our-team-back" class="navbar-link">
+                <img src="static/team-icon.png" alt="Our Team">
+                <span>Our Team</span>
+            </a>
+        </div>
+    </nav>
+    
+
+    <!-- Home Section -->
+        <section id="home" class="section home-section">
+        <div class="wow fadeInLeft" data-wow-delay="0.2s">
+        <div class="content">
+            <img src="static/locker_img.png" alt="Illustration" style="max-width: 100%; height: auto; margin-bottom: 20px;">
+            <h1 class="display-5 mb-4">Welcome To Our Smart Locker System</h1>
+            <h2 class="home-subtitle">You Better Lockit</h2>
+            <p>
+                Designed to provide secure, convenient, and easy access to personal storage spaces. Whether you're a student, employee, or visitor, our lockers can help keep your belongings safe.
+                With our advanced RFID and PIN technology, you can quickly check items in and out, track usage, and monitor locker availability. Explore the features of our system and discover a smarter way to manage storage.
+            </p><br>
+            <div class="button-container">
+                <a href="{{ url_for('show_register') }}" class="button-35">📝 Register User</a>
+                <a href="{{ url_for('admin_login') }}" class="button-35">🔑 Admin Login</a>
+            </div>
+        </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about"  class="section about-section">
+        <div class="container-fluid about py-5">
+            <div class="container py-5">
+                <div class="row g-5 align-items-center">
+                    <div class="col-xl-7 wow fadeInLeft" data-wow-delay="0.2s">
+                        <div>
+                            <h4 class="text-primary">About Us</h4>
+                            <h1 class="display-5 mb-4">Meet our technology unless miss the opportunity</h1>
+                            <p class="mb-4">Lockit is an IoT project developed by an independent team of students under the guidance of Indobot Academy. 
+                                The project focuses on creating a smart locker system that integrates IoT technology for secure, streamlined access and usage tracking
+                            </p>
+                            <div class="row g-4">
+                                <div class="col-md-6 col-lg-6 col-xl-6">
+                                    <div class="d-flex">
+                                        <div><i class="fas fa-lightbulb fa-3x text-primary"></i></div>
+                                        <div class="ms-4">
+                                            <h4>IoT Solution</h4>
+                                            <p>Lockit is a smart, secure locker solution powered by the Internet of Things (IoT), designed to simplify and enhance secure storage.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-lg-6 col-xl-6">
+                                    <div class="d-flex">
+                                        <div><i class="bi bi-bookmark-heart-fill fa-3x text-primary"></i></div>
+                                        <div class="ms-4">
+                                            <h4>Made With Heart</h4>
+                                            <p>Every aspect of Lockit has been crafted with care, dedication, and attention to detail.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <a href="#" class="btn btn-primary rounded-pill py-3 px-5 flex-shrink-0">Discover Now</a>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="d-flex">
+                                        <i class="fas fa-phone-alt fa-2x text-primary me-4"></i>
+                                        <div>
+                                            <h4>Call Us</h4>
+                                            <p class="mb-0 fs-5" style="letter-spacing: 1px;">+62 0000000000</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-5 wow fadeInRight" data-wow-delay="0.2s">
+                        <div class="bg-primary rounded position-relative overflow-hidden">
+                            <img src="static/img/about-2.png" class="img-fluid  w-100" alt="">
+
+                            
+                            <div class="rounded-bottom">
+                                <img src="static/img/about-5.png" class="img-fluid rounded-bottom w-100" alt="">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>        
+    </section>
+    <div class="container-fluid faq-section pb-5">
+        <div class="container pb-5 overflow-hidden">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.2s" style="max-width: 800px;"><br><br><br>
+                
+                <h1 class="display-6 mb-4">Hear What We Have To Say ...</h1>
+                
+            </div>
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.2s">
+                    <div class="accordion accordion-flush bg-light rounded p-5" id="accordionFlushSection">
+                        <div class="accordion-item rounded-top">
+                            <h2 class="accordion-header" id="flush-headingOne">
+                                <button class="accordion-button collapsed rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+                                What Is This Project?
+                                </button>
+                            </h2>
+                            <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordionFlushSection">
+                                <div class="accordion-body">This project is a smart locker system that allows users to access lockers using RFID or PIN-based authentication. It logs access times and maintains a real-time status of locker availability, 
+                                    integrating hardware and software components for secure and user-friendly access control.</div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="flush-headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
+                                Who Made This Project?
+                                </button>
+                            </h2>
+                            <div id="flush-collapseTwo" class="accordion-collapse collapse" aria-labelledby="flush-headingTwo" data-bs-parent="#accordionFlushSection">
+                                <div class="accordion-body">This project was developed as part of the Indobot Academy Independent Study Program, which provides students with hands-on experience in IoT and technology innovation</div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="flush-headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
+                                Why We Made This Project?
+                                </button>
+                            </h2>
+                            <div id="flush-collapseThree" class="accordion-collapse collapse" aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushSection">
+                                <div class="accordion-body">We created the smart locker with RFID and keypad access to provide a secure, efficient, and flexible storage solution. By combining RFID and PIN authentication, it ensures only authorized access while offering user convenience. 
+                                    The system includes real-time monitoring via a web interface, making it ideal for shared environments like schools, gyms, or offices. </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="flush-headingFour">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFour" aria-expanded="false" aria-controls="flush-collapseFour">
+                                When Is This Project Taken Place?
+                                </button>
+                            </h2>
+                            <div id="flush-collapseFour" class="accordion-collapse collapse" aria-labelledby="flush-headingFour" data-bs-parent="#accordionFlushSection">
+                                <div class="accordion-body">This project has been developed gradually over the past few months as the timeline of MSIB Independent Study under Indobot Academy. We built and refined different components, 
+                                    working on the hardware, web interface, and database integration in phases.</div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="flush-headingFive">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFive" aria-expanded="false" aria-controls="flush-collapseFive">
+                                Where Will This Project Be Implemented?
+                                </button>
+                            </h2>
+                            <div id="flush-collapseFive" class="accordion-collapse collapse" aria-labelledby="flush-headingFive" data-bs-parent="#accordionFlushSection">
+                                <div class="accordion-body">The smart locker system can be implemented in locations that require secure, user-specific access to shared storage, such as schools, gyms, coworking spaces, and libraries. For this project, we plan to implement it on a campus.</div>
+                            </div>
+                        </div>
+                        <div class="accordion-item rounded-bottom">
+                            <h2 class="accordion-header" id="flush-headingSix">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseSix" aria-expanded="false" aria-controls="flush-collapseSix">
+                                How We Made This Project?
+                                </button>
+                            </h2>
+                            <div id="flush-collapseSix" class="accordion-collapse collapse" aria-labelledby="flush-headingSix" data-bs-parent="#accordionFlushSection">
+                                <div class="accordion-body">The project combines hardware (ESP32 with RFID module) and software (Python Flask for the web app). It includes a registration system for users, RFID authentication for access, and real-time status monitoring. The system stores data in a Firebase database and integrates additional features, such as admin controls, 
+                                    for user and locker management.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
+                    <div class="bg-primary rounded">
+                        <img src="static/img/ask.png" class="img-fluid w-100" alt="">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schematic Section -->
+    <section id="schematic" class="section">
+        <div class="container-fluid service pb-5">
+            <div class="container pb-5">
+                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.2s" style="max-width: 800px;">
+                    <h4 class="text-primary">Our Work</h4>
+                    <h1 class="display-5 mb-4">What We Did In This Project</h1>
+                    <p class="mb-0">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Tenetur adipisci facilis cupiditate recusandae aperiam temporibus corporis itaque quis facere, numquam, ad culpa deserunt sint dolorem autem obcaecati, ipsam mollitia hic.
+                    </p>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.2s">
+                        <div class="service-item">
+                            <div class="service-img">
+                                <img src="static/img/first-gathering.png" class="img-fluid rounded-top w-100" alt="Image">
+                            </div>
+                            <div class="rounded-bottom p-4">
+                                <a href="#" class="h4 d-inline-block mb-4">First Gathering</a>
+                                <p class="mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, sint? Excepturi facilis neque nesciunt similique officiis veritatis,
+                                </p>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.4s">
+                        <div class="service-item">
+                            <div class="service-img">
+                                <img src="static/img/friend.png" class="img-fluid rounded-top w-100" alt="Image">
+                            </div>
+                            <div class="rounded-bottom p-4">
+                                <a href="#" class="h4 d-inline-block mb-4">First Update</a>
+                                <p class="mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, sint? Excepturi facilis neque nesciunt similique officiis veritatis,
+                                </p>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.6s">
+                        <div class="service-item">
+                            <div class="service-img">
+                                <img src="static/img/friend.png" class="img-fluid rounded-top w-100" alt="Image">
+                            </div>
+                            <div class="rounded-bottom p-4">
+                                <a href="#" class="h4 d-inline-block mb-4">Second Update</a>
+                                <p class="mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, sint? Excepturi facilis neque nesciunt similique officiis veritatis,
+                                </p>
+        
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.2s">
+                        <div class="service-item">
+                            <div class="service-img">
+                                <img src="static/img/friend.png" class="img-fluid rounded-top w-100" alt="Image">
+                            </div>
+                            <div class="rounded-bottom p-4">
+                                <a href="#" class="h4 d-inline-block mb-4">Third Update</a>
+                                <p class="mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, sint? Excepturi facilis neque nesciunt similique officiis veritatis,
+                                </p>
+                               
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.4s">
+                        <div class="service-item">
+                            <div class="service-img">
+                                <img src="static/img/friend.png" class="img-fluid rounded-top w-100" alt="Image">
+                            </div>
+                            <div class="rounded-bottom p-4">
+                                <a href="#" class="h4 d-inline-block mb-4">Implementation</a>
+                                <p class="mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, sint? Excepturi facilis neque nesciunt similique officiis veritatis,
+                                </p>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.6s">
+                        <div class="service-item">
+                            <div class="service-img">
+                                <img src="static/img/friend.png" class="img-fluid rounded-top w-100" alt="Image">
+                            </div>
+                            <div class="rounded-bottom p-4">
+                                <a href="#" class="h4 d-inline-block mb-4">Coming Soon...</a>
+                                <p class="mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, sint? Excepturi facilis neque nesciunt similique officiis veritatis,
+                                </p>
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Our Team Section -->
+    <section id="our-team-back" class="section">
+        <!-- Team Start -->
+        <div class="container-fluid team pb-5">
+            <div class="container-fluid team pb-5">
+                <div class="container pb-5">
+                    <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.2s" style="max-width: 800px;">
+                        <h4 class="text-primary">Our Team</h4>
+                        <h1 class="display-5 mb-4">Meet Our Developer</h1>
+                        <p class="mb-0">Our project reflects teamwork, creativity, and a shared commitment to leveraging technology for real-world applications. 
+                            Together, we combined our knowledge in IoT, software, and hardware to deliver a product that is both functional and user-friendly
+                        </p>
+                    </div>
+                    <!-- Top Row: 3 Members -->
+                    <div class="row g-4 justify-content-center">
+                        <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.2s">
+                            <div class="team-item">
+                                <div class="team-img">
+                                    <img src="static/img/ahmad.png" class="img-fluid" alt="">
+                                </div>
+                                <div class="team-title">
+                                    <h4 class="mb-0">Ahmad</h4>
+                                    <p class="mb-0">Project Manager</p>
+                                </div>
+                                <div class="team-icon">
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-facebook-f"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-twitter"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-linkedin-in"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-0" href=""><i class="fab fa-instagram"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.4s">
+                            <div class="team-item">
+                                <div class="team-img">
+                                    <img src="static/img/ibnu.png" class="img-fluid" alt="">
+                                </div>
+                                <div class="team-title">
+                                    <h4 class="mb-0">Muhammad Ibnu Abas</h4>
+                                    <p class="mb-0">Hardware Engineer</p>
+                                </div>
+                                <div class="team-icon">
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-facebook-f"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-twitter"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-linkedin-in"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-0" href=""><i class="fab fa-instagram"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.6s">
+                            <div class="team-item">
+                                <div class="team-img">
+                                    <img src="static/img/friend.png" class="img-fluid" alt="">
+                                </div>
+                                <div class="team-title">
+                                    <h4 class="mb-0">Rangga Nuralifyan</h4>
+                                    <p class="mb-0">Firmware Engineer</p>
+                                </div>
+                                <div class="team-icon">
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-facebook-f"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-twitter"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-linkedin-in"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-0" href=""><i class="fab fa-instagram"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Bottom Row: 2 Members -->
+                    <div class="row g-4 justify-content-center mt-4">
+                        <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.8s">
+                            <div class="team-item">
+                                <div class="team-img">
+                                    <img src="static/img/Raden2.png" class="img-fluid" alt="">
+                                </div>
+                                <div class="team-title">
+                                    <h4 class="mb-0">Raden Muhammad Fadil Azhar</h4>
+                                    <p class="mb-0">Software Engineer</p>
+                                </div>
+                                <div class="team-icon">
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-facebook-f"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-twitter"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-linkedin-in"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-0" href=""><i class="fab fa-instagram"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="1.0s">
+                            <div class="team-item">
+                                <div class="team-img">
+                                    <img src="static/img/dimas.png" class="img-fluid" alt="">
+                                </div>
+                                <div class="team-title">
+                                    <h4 class="mb-0">Dimas Wahyu Ardiansyah</h4>
+                                    <p class="mb-0">UI/UX</p>
+                                </div>
+                                <div class="team-icon">
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-facebook-f"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-twitter"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-3" href=""><i class="fab fa-linkedin-in"></i></a>
+                                    <a class="btn btn-primary btn-sm-square rounded-circle me-0" href=""><i class="fab fa-instagram"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </section>
+
+        <!-- Footer Section -->
+        <div class="wow fadeInUp" data-wow-delay="0.8s">
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 Lockit. All rights reserved.</p>
+                <p>Developed by the Lockit Team</p>
+                <div class="social-icons">
+                    <a href="https://instagram.com" target="_blank">
+                        <img src="static/instagram.png" alt="Instagram">
+                    </a>
+                    <a href="https://linkedin.com" target="_blank">
+                        <img src="static/linkedin.png" alt="LinkedIn">
+                    </a>
+                </div>
+            </div>
+        </footer>
+        </div>
+        
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="static/lib/wow/wow.min.js"></script>
+        <script src="static/lib/easing/easing.min.js"></script>
+        <script src="static/lib/waypoints/waypoints.min.js"></script>
+        <script src="static/lib/counterup/counterup.min.js"></script>
+        <script src="static/lib/lightbox/js/lightbox.min.js"></script>
+        <script src="static/lib/owlcarousel/owl.carousel.min.js"></script>
+        <script src="static/js/main.js"></script>
+</body>
+
+<script>
+    // Adjust the scroll offset for active navbar links
+    window.addEventListener('scroll', function() {
+        const sections = document.querySelectorAll('.section');
+        const navbarLinks = document.querySelectorAll('.navbar-link');
+        const offset = window.innerHeight / 2; // Set the offset to half of the viewport height for better accuracy
+
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionId = section.getAttribute('id');
+            
+            // Check if the middle of the section is within the viewport
+            if (window.scrollY + offset >= sectionTop && window.scrollY + offset < sectionTop + section.offsetHeight) {
+                navbarLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + sectionId) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    });
+    
+    function toggleMenu() {
+        const navbarLinks = document.querySelector('.navbar-links');
+        navbarLinks.classList.toggle('show');
+    }
+</script>
+</html>
