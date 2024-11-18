@@ -5,9 +5,5 @@
   ],
   "routes": [
     { "src": "/(.*)", "dest": "app.py" }
-  ],
-  "env": {
-    "SUPABASE_URL": "@https://edgipgqjsitghqlahajs.supabase.co",
-    "SUPABASE_KEY": "@supabaeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZ2lwZ3Fqc2l0Z2hxbGFoYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE4OTQ5MTAsImV4cCI6MjA0NzQ3MDkxMH0.yfbZ8vHOnqwkRfHbV4XzimCax9yjzyph8aGp1bb-GoEse_key"
-  }
+  ]
 }
