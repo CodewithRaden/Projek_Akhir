@@ -1,84 +1,49 @@
-#include <SPI.h>
-#include <MFRC522.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 
-#define RST_PIN D3  // Reset pin
-#define SS_PIN D4   // SDA pin untuk RFID
-#define LED_PIN D1  // Pin untuk LED (menggunakan D1)
+const char* ssid = "RadenLt2";           // Your WiFi SSID
+const char* password = "onlyraden123"; // Your WiFi password
+const char* serverName = "https://projek-akhir-eosin.vercel.app/rfid";  // Flask server URL
 
-MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
-
-const char* ssid = "Raden";           // Nama WiFi
-const char* password = "papamamaandus";   // Password WiFi
-const char* serverName = "http://192.168.1.2:5000/rfid";  // IP address server Flask
-
-WiFiClient client;  // WiFiClient
-// add loker storage buat maybe fs?? can use get post protocol buat ambil info ke database
-// esp32 local mode? remote?
-// jadi id device itu perlu biar easy assign buat lokernya
 void setup() {
   Serial.begin(115200);
-  SPI.begin();
-  mfrc522.PCD_Init();
 
-  // Set LED pin sebagai output
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);  // Awal LED dalam keadaan mati (loker terkunci)
-
-  // Koneksi ke WiFi
+  // Connect to WiFi
   WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("Connected to WiFi");
+  Serial.println("\nConnected to WiFi");
 }
 
 void loop() {
-  if (!mfrc522.PICC_IsNewCardPresent()) {
-    return;
-  }
-  
-  if (!mfrc522.PICC_ReadCardSerial()) {
-    return;
-  }
-
-  String rfidTag = "";
-  for (byte i = 0; i < mfrc522.uid.size; i++) {
-    rfidTag += String(mfrc522.uid.uidByte[i], HEX);
-  }
-
-  Serial.println("RFID Tag: " + rfidTag);
-
-  if(WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin(client, serverName);  // Gunakan WiFiClient dalam begin()
 
+    http.begin(serverName);  // Initialize connection to server
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
+    String rfidTag = "1234567890";  // Hardcoded RFID value for testing
     String postData = "rfid=" + rfidTag;
+
+    // Send POST request
     int httpResponseCode = http.POST(postData);
 
-    if(httpResponseCode > 0) {
+    // Handle response
+    if (httpResponseCode > 0) {
+      Serial.println("HTTP Response Code: " + String(httpResponseCode));
       String response = http.getString();
-      Serial.println(httpResponseCode);
-      Serial.println(response);
-
-      if (httpResponseCode == 200) {
-        Serial.println("Access Granted!");
-        digitalWrite(LED_PIN, HIGH);  // Nyalakan LED (loker terbuka)
-        delay(5000);  // Simulasikan loker terbuka selama 5 detik
-        digitalWrite(LED_PIN, LOW);   // Matikan LED kembali (loker terkunci)
-      } else {
-        Serial.println("Access Denied.");
-        digitalWrite(LED_PIN, LOW);   // Tetap matikan LED (loker terkunci)
-      }
+      Serial.println("Server Response: " + response);
     } else {
-      Serial.println("Error in sending POST");
+      Serial.println("Error in sending POST: " + String(httpResponseCode));
     }
-    http.end();
+
+    http.end();  // Close connection
+  } else {
+    Serial.println("WiFi not connected");
   }
 
-  delay(2000);
+  delay(5000);  // Wait before sending the next request
 }

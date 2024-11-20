@@ -291,14 +291,42 @@ def monitoring():
     page = request.args.get('page', default=1, type=int)  # Current page, default is 1
     per_page = 8  # Max data per page
 
-    # Start building the query for access logs
-    query = supabase.table('access_logs') \
-        .select('locker_id, user_id, access_time, action, lockers(locker_number), users(username, rfid_tag)')  # Join lockers and users tables
+    # Base query for filters
+    base_query = supabase.table('access_logs').select('id')  # Only fetch IDs for counting
 
-    # Filters based on user, status, date range, and locker number
+    # Apply filters to the base query
+    if user_filter:
+        base_query = base_query.filter('users.username', 'eq', user_filter)
+    
+    if status_filter:
+        base_query = base_query.filter('action', 'eq', status_filter.lower())
+
+    if start_date:
+        base_query = base_query.filter('access_time', 'gte', f"{start_date}T00:00:00")
+
+    if end_date:
+        base_query = base_query.filter('access_time', 'lte', f"{end_date}T23:59:59")
+
+    if locker_number_filter:
+        base_query = base_query.filter('lockers.locker_number', 'eq', locker_number_filter)
+
+    # Fetch total record count
+    total_records_response = base_query.execute()
+    total_records = len(total_records_response.data)
+
+    # Calculate total pages
+    total_pages = (total_records + per_page - 1) // per_page
+
+    # Fetch paginated data with sorting
+    query = supabase.table('access_logs') \
+        .select('locker_id, user_id, access_time, action, lockers(locker_number), users(username, rfid_tag)') \
+        .order('access_time', desc=True) \
+        .range((page - 1) * per_page, page * per_page - 1)
+
+    # Apply the same filters to the query
     if user_filter:
         query = query.filter('users.username', 'eq', user_filter)
-    
+
     if status_filter:
         query = query.filter('action', 'eq', status_filter.lower())
 
@@ -311,12 +339,6 @@ def monitoring():
     if locker_number_filter:
         query = query.filter('lockers.locker_number', 'eq', locker_number_filter)
 
-    # Sorting by access_time in descending order (newest first)
-    query = query.order('access_time', desc=True)
-
-    # Pagination logic
-    query = query.range((page - 1) * per_page, page * per_page - 1)
-
     # Execute the query and fetch data
     access_logs_response = query.execute()
     access_logs = access_logs_response.data
@@ -324,11 +346,10 @@ def monitoring():
     # Merge the access logs with user and locker details
     monitoring_data = []
     for log in access_logs:
-        # Check if locker and user data exist, otherwise set to None or empty string
         locker_number = log['lockers']['locker_number'] if log.get('lockers') else 'No Locker Data'
         username = log['users']['username'] if log.get('users') else 'No User Data'
         rfid_tag = log['users']['rfid_tag'] if log.get('users') else 'No RFID Data'
-        
+
         monitoring_data.append({
             'locker_number': locker_number,
             'username': username,
@@ -337,16 +358,12 @@ def monitoring():
             'action': log['action']
         })
 
-    # Calculate total records for pagination
-    total_records = len(access_logs)
-
-    # Calculate total pages
-    total_pages = (total_records + per_page - 1) // per_page
-
-    return render_template('monitoring.html', 
-                           monitoring_data=monitoring_data, 
-                           page=page, 
-                           total_pages=total_pages)
+    return render_template(
+        'monitoring.html', 
+        monitoring_data=monitoring_data, 
+        page=page, 
+        total_pages=total_pages
+    )
 
 
 
