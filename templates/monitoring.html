@@ -246,23 +246,30 @@
                 </tr>
             </thead>
             <tbody>
-                {% for data in monitoring_data %}
-                <tr>
-                    <td>{{ data.locker_number }}</td>
-                    <td>{{ data.username }}</td>
-                    <td>{{ data.rfid_tag }}</td>
-                    <td>{{ data.access_time }}</td>
-                    <td>
-                        <span class="status-label 
-                            {% if data.action == 'open' %}status-open
-                            {% elif data.action == 'close' %}status-closed
-                            {% else %}status-in-use{% endif %}">
-                            {{ data.action }}
-                        </span>
-                    </td>
-                </tr>
-                {% endfor %}
+                {% if monitoring_data %}
+                    {% for data in monitoring_data %}
+                        <tr>
+                            <td>{{ data.locker_number }}</td>
+                            <td>{{ data.username }}</td>
+                            <td>{{ data.rfid_tag }}</td>
+                            <td>{{ data.access_time }}</td>
+                            <td>
+                                <span class="status-label 
+                                    {% if data.action == 'open' %}status-open
+                                    {% elif data.action == 'close' %}status-closed
+                                    {% else %}status-in-use{% endif %}">
+                                    {{ data.action }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">No data found for the given filters.</td>
+                    </tr>
+                {% endif %}
             </tbody>
+            
         </table>
 
         <div class="pagination">

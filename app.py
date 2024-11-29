@@ -298,12 +298,11 @@ def monitoring():
             'locker_id, user_id, access_time, action, '
             'lockers(locker_number), users(username, rfid_tag)'
         ) \
-        .order('access_time', desc=True) \
-        .range((page - 1) * per_page, page * per_page - 1)
+        .order('access_time', desc=True)
 
     # Apply filters dynamically
     if user_filter:
-        query = query.filter('users.username', 'eq', user_filter)
+        query = query.filter('users.username', 'ilike', f"%{user_filter}%")
     if status_filter:
         query = query.filter('action', 'eq', status_filter)
     if start_date:
@@ -312,6 +311,9 @@ def monitoring():
         query = query.filter('access_time', 'lte', f"{end_date}T23:59:59")
     if locker_number_filter and locker_number_filter != 'None':
         query = query.filter('lockers.locker_number', 'eq', locker_number_filter)
+
+    # Paginate results
+    query = query.range((page - 1) * per_page, page * per_page - 1)
 
     # Fetch filtered access logs
     try:
@@ -324,7 +326,7 @@ def monitoring():
     # Fetch total record count for pagination
     count_query = supabase.table('access_logs').select('id', count='exact')
     if user_filter:
-        count_query = count_query.filter('users.username', 'eq', user_filter)
+        count_query = count_query.filter('users.username', 'ilike', f"%{user_filter}%")
     if status_filter:
         count_query = count_query.filter('action', 'eq', status_filter)
     if start_date:
@@ -359,6 +361,7 @@ def monitoring():
             'action': log['action']
         })
 
+    # Render the monitoring page
     return render_template(
         'monitoring.html',
         monitoring_data=monitoring_data,
@@ -370,6 +373,8 @@ def monitoring():
         end_date=end_date,
         locker_number_filter=locker_number_filter
     )
+
+
 
 # Endpoint untuk menambahkan loker
 @app.route('/add_locker', methods=['GET', 'POST'])
