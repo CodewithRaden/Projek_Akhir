@@ -283,97 +283,90 @@ def view_lockers():
 
 @app.route('/monitoring', methods=['GET'])
 def monitoring():
-    # Fetch query parameters for filtering and pagination
-    user_filter = request.args.get('user', '').strip()
-    status_filter = request.args.get('status', '').strip().lower()
-    start_date = request.args.get('start_date', '').strip()
-    end_date = request.args.get('end_date', '').strip()
-    locker_number_filter = request.args.get('locker_number', '').strip()
+    # Get filter parameters from the request
+    user_filter = request.args.get('user')
+    status_filter = request.args.get('status')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    locker_number_filter = request.args.get('locker_number')
     page = request.args.get('page', default=1, type=int)
     per_page = 8
 
-    # Base query for access logs
-    query = supabase.table('access_logs') \
-        .select(
-            'locker_id, user_id, access_time, action, '
-            'lockers(locker_number), users(username, rfid_tag)'
-        ) \
-        .order('access_time', desc=True)
+    # Base query with relationships
+    query = supabase.table("access_logs").select(
+        "locker_id, user_id, access_time, action, "
+        "lockers(locker_number), users(username, rfid_tag)"
+    )
 
-    # Apply filters dynamically
+    # Apply filters
     if user_filter:
-        query = query.filter('users.username', 'ilike', f"%{user_filter}%")
+        query = query.eq("users.username", user_filter)
     if status_filter:
-        query = query.filter('action', 'eq', status_filter)
+        query = query.eq("action", status_filter.lower())
     if start_date:
-        query = query.filter('access_time', 'gte', f"{start_date}T00:00:00")
+        query = query.gte("access_time", f"{start_date} 00:00:00")
     if end_date:
-        query = query.filter('access_time', 'lte', f"{end_date}T23:59:59")
-    if locker_number_filter and locker_number_filter != 'None':
-        query = query.filter('lockers.locker_number', 'eq', locker_number_filter)
+        query = query.lte("access_time", f"{end_date} 23:59:59")
+    if locker_number_filter:
+        query = query.eq("lockers.locker_number", locker_number_filter)
 
-    # Paginate results
-    query = query.range((page - 1) * per_page, page * per_page - 1)
+    # Pagination: Limit results to a specific page
+    start_index = (page - 1) * per_page
+    query_with_pagination = query.range(start_index, start_index + per_page - 1)
 
-    # Fetch filtered access logs
-    try:
-        access_logs_response = query.execute()
-        access_logs = access_logs_response.data or []
-    except Exception as e:
-        flash(f"Error fetching access logs: {e}", "error")
-        access_logs = []
+    # Execute the paginated query
+    response = query_with_pagination.execute()
+    records = response.data
 
-    # Fetch total record count for pagination
-    count_query = supabase.table('access_logs').select('id', count='exact')
+    # Filter out records without associated users if user_filter is applied
     if user_filter:
-        count_query = count_query.filter('users.username', 'ilike', f"%{user_filter}%")
+        records = [record for record in records if record.get("users")]
+
+    # Separate query for counting total matching records
+    count_query = supabase.table("access_logs").select("id", count="exact")
+    if user_filter:
+        user_data = supabase.table("users").select("id").eq("username", user_filter).execute()
+        if user_data.data:
+            user_id = user_data.data[0]["id"]
+            count_query = count_query.eq("user_id", user_id)
     if status_filter:
-        count_query = count_query.filter('action', 'eq', status_filter)
+        count_query = count_query.eq("action", status_filter.lower())
     if start_date:
-        count_query = count_query.filter('access_time', 'gte', f"{start_date}T00:00:00")
+        count_query = count_query.gte("access_time", f"{start_date} 00:00:00")
     if end_date:
-        count_query = count_query.filter('access_time', 'lte', f"{end_date}T23:59:59")
-    if locker_number_filter and locker_number_filter != 'None':
-        count_query = count_query.filter('lockers.locker_number', 'eq', locker_number_filter)
+        count_query = count_query.lte("access_time", f"{end_date} 23:59:59")
+    if locker_number_filter:
+        locker_data = supabase.table("lockers").select("id").eq("locker_number", locker_number_filter).execute()
+        if locker_data.data:
+            locker_id = locker_data.data[0]["id"]
+            count_query = count_query.eq("locker_id", locker_id)
 
-    try:
-        total_records_response = count_query.execute()
-        total_records = total_records_response.count or 0
-    except Exception as e:
-        flash(f"Error fetching total record count: {e}", "error")
-        total_records = 0
-
-    # Calculate total pages
+    # Execute the count query
+    total_response = count_query.execute()
+    total_records = total_response.count
     total_pages = (total_records + per_page - 1) // per_page
 
-    # Prepare data for template rendering
+    # Build the monitoring data
     monitoring_data = []
-    for log in access_logs:
-        locker_number = log.get('lockers', {}).get('locker_number', 'No Locker Data') if log.get('lockers') else 'No Locker Data'
-        username = log.get('users', {}).get('username', 'No User Data') if log.get('users') else 'No User Data'
-        rfid_tag = log.get('users', {}).get('rfid_tag', 'No RFID Data') if log.get('users') else 'No RFID Data'
+    for record in records:
+        user_data = record.get("users") or {}
+        locker_data = record.get("lockers") or {}
 
         monitoring_data.append({
-            'locker_number': locker_number,
-            'username': username,
-            'rfid_tag': rfid_tag,
-            'access_time': log['access_time'],
-            'action': log['action']
+            "locker_number": locker_data.get("locker_number", "Unknown"),
+            "username": user_data.get("username", "Unknown"),
+            "rfid_tag": user_data.get("rfid_tag", "Unknown"),
+            "access_time": record["access_time"],
+            "action": record["action"],
         })
 
-    # Render the monitoring page
+    # Render the monitoring page with the filtered data
     return render_template(
         'monitoring.html',
         monitoring_data=monitoring_data,
         page=page,
-        total_pages=total_pages,
-        user_filter=user_filter,
-        status_filter=status_filter,
-        start_date=start_date,
-        end_date=end_date,
-        locker_number_filter=locker_number_filter
+        total_pages=total_pages
     )
-
 
 
 # Endpoint untuk menambahkan loker
