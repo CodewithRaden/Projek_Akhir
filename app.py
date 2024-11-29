@@ -283,72 +283,73 @@ def view_lockers():
 
 @app.route('/monitoring', methods=['GET'])
 def monitoring():
-    user_filter = request.args.get('user')
-    status_filter = request.args.get('status')
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    locker_number_filter = request.args.get('locker_number')  # New locker number filter
-    page = request.args.get('page', default=1, type=int)  # Current page, default is 1
-    per_page = 8  # Max data per page
+    # Fetch query parameters for filtering and pagination
+    user_filter = request.args.get('user', '').strip()
+    status_filter = request.args.get('status', '').strip().lower()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    locker_number_filter = request.args.get('locker_number', '').strip()
+    page = request.args.get('page', default=1, type=int)
+    per_page = 8
 
-    # Base query for filters
-    base_query = supabase.table('access_logs').select('id')  # Only fetch IDs for counting
+    # Base query for access logs
+    query = supabase.table('access_logs') \
+        .select(
+            'locker_id, user_id, access_time, action, '
+            'lockers(locker_number), users(username, rfid_tag)'
+        ) \
+        .order('access_time', desc=True) \
+        .range((page - 1) * per_page, page * per_page - 1)
 
-    # Apply filters to the base query
+    # Apply filters dynamically
     if user_filter:
-        base_query = base_query.filter('users.username', 'eq', user_filter)
-    
+        query = query.filter('users.username', 'eq', user_filter)
     if status_filter:
-        base_query = base_query.filter('action', 'eq', status_filter.lower())
-
+        query = query.filter('action', 'eq', status_filter)
     if start_date:
-        base_query = base_query.filter('access_time', 'gte', f"{start_date}T00:00:00")
-
+        query = query.filter('access_time', 'gte', f"{start_date}T00:00:00")
     if end_date:
-        base_query = base_query.filter('access_time', 'lte', f"{end_date}T23:59:59")
+        query = query.filter('access_time', 'lte', f"{end_date}T23:59:59")
+    if locker_number_filter and locker_number_filter != 'None':
+        query = query.filter('lockers.locker_number', 'eq', locker_number_filter)
 
-    if locker_number_filter:
-        base_query = base_query.filter('lockers.locker_number', 'eq', locker_number_filter)
+    # Fetch filtered access logs
+    try:
+        access_logs_response = query.execute()
+        access_logs = access_logs_response.data or []
+    except Exception as e:
+        flash(f"Error fetching access logs: {e}", "error")
+        access_logs = []
 
-    # Fetch total record count
-    total_records_response = base_query.execute()
-    total_records = len(total_records_response.data)
+    # Fetch total record count for pagination
+    count_query = supabase.table('access_logs').select('id', count='exact')
+    if user_filter:
+        count_query = count_query.filter('users.username', 'eq', user_filter)
+    if status_filter:
+        count_query = count_query.filter('action', 'eq', status_filter)
+    if start_date:
+        count_query = count_query.filter('access_time', 'gte', f"{start_date}T00:00:00")
+    if end_date:
+        count_query = count_query.filter('access_time', 'lte', f"{end_date}T23:59:59")
+    if locker_number_filter and locker_number_filter != 'None':
+        count_query = count_query.filter('lockers.locker_number', 'eq', locker_number_filter)
+
+    try:
+        total_records_response = count_query.execute()
+        total_records = total_records_response.count or 0
+    except Exception as e:
+        flash(f"Error fetching total record count: {e}", "error")
+        total_records = 0
 
     # Calculate total pages
     total_pages = (total_records + per_page - 1) // per_page
 
-    # Fetch paginated data with sorting
-    query = supabase.table('access_logs') \
-        .select('locker_id, user_id, access_time, action, lockers(locker_number), users(username, rfid_tag)') \
-        .order('access_time', desc=True) \
-        .range((page - 1) * per_page, page * per_page - 1)
-
-    # Apply the same filters to the query
-    if user_filter:
-        query = query.filter('users.username', 'eq', user_filter)
-
-    if status_filter:
-        query = query.filter('action', 'eq', status_filter.lower())
-
-    if start_date:
-        query = query.filter('access_time', 'gte', f"{start_date}T00:00:00")
-
-    if end_date:
-        query = query.filter('access_time', 'lte', f"{end_date}T23:59:59")
-
-    if locker_number_filter:
-        query = query.filter('lockers.locker_number', 'eq', locker_number_filter)
-
-    # Execute the query and fetch data
-    access_logs_response = query.execute()
-    access_logs = access_logs_response.data
-
-    # Merge the access logs with user and locker details
+    # Prepare data for template rendering
     monitoring_data = []
     for log in access_logs:
-        locker_number = log['lockers']['locker_number'] if log.get('lockers') else 'No Locker Data'
-        username = log['users']['username'] if log.get('users') else 'No User Data'
-        rfid_tag = log['users']['rfid_tag'] if log.get('users') else 'No RFID Data'
+        locker_number = log.get('lockers', {}).get('locker_number', 'No Locker Data') if log.get('lockers') else 'No Locker Data'
+        username = log.get('users', {}).get('username', 'No User Data') if log.get('users') else 'No User Data'
+        rfid_tag = log.get('users', {}).get('rfid_tag', 'No RFID Data') if log.get('users') else 'No RFID Data'
 
         monitoring_data.append({
             'locker_number': locker_number,
@@ -359,14 +360,16 @@ def monitoring():
         })
 
     return render_template(
-        'monitoring.html', 
-        monitoring_data=monitoring_data, 
-        page=page, 
-        total_pages=total_pages
+        'monitoring.html',
+        monitoring_data=monitoring_data,
+        page=page,
+        total_pages=total_pages,
+        user_filter=user_filter,
+        status_filter=status_filter,
+        start_date=start_date,
+        end_date=end_date,
+        locker_number_filter=locker_number_filter
     )
-
-
-
 
 # Endpoint untuk menambahkan loker
 @app.route('/add_locker', methods=['GET', 'POST'])
