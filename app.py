@@ -296,7 +296,7 @@ def monitoring():
     query = supabase.table("access_logs").select(
         "locker_id, user_id, access_time, action, "
         "lockers(locker_number), users(username, rfid_tag)"
-    )
+    ).order("access_time", desc=True)  # Order by access_time descending
 
     # Apply filters
     if user_filter:
@@ -367,6 +367,7 @@ def monitoring():
         page=page,
         total_pages=total_pages
     )
+
 
 
 # Endpoint untuk menambahkan loker
