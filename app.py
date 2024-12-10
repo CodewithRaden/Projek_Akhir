@@ -1,236 +1,283 @@
-from flask import Flask, request, render_template, jsonify, session, redirect, url_for, flash
+from flask import (
+    Flask,
+    request,
+    render_template,
+    jsonify,
+    session,
+    redirect,
+    url_for,
+    flash,
+)
 from supabase import create_client, Client
 from datetime import datetime
 import pytz
 
 app = Flask(__name__)
-app.secret_key = 'matherfaker' 
-local_timezone = pytz.timezone('Asia/Jakarta')
+app.secret_key = "matherfaker"
+local_timezone = pytz.timezone("Asia/Jakarta")
 
 url = "https://edgipgqjsitghqlahajs.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZ2lwZ3Fqc2l0Z2hxbGFoYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE4OTQ5MTAsImV4cCI6MjA0NzQ3MDkxMH0.yfbZ8vHOnqwkRfHbV4XzimCax9yjzyph8aGp1bb-GoE"
 supabase: Client = create_client(url, key)
 
 
-@app.route('/')
+@app.route("/")
 def home():
-     return render_template('home.html')
+    return render_template("home.html")
 
 
-@app.route('/index')
+@app.route("/index")
 def index():
-    if 'admin_logged_in' in session and session['admin_logged_in']:
-        return render_template('index.html', is_admin=True)
-    return render_template('index.html', is_admin=False)
+    if "admin_logged_in" in session and session["admin_logged_in"]:
+        return render_template("index.html", is_admin=True)
+    return render_template("index.html", is_admin=False)
 
-@app.route('/admin_login', methods=['GET', 'POST'])
+
+@app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
-    if request.method == 'POST':
-        admin_username = request.form['username']
-        admin_password = request.form['password']
-        
-        if admin_username == 'admin' and admin_password == 'password':
-            session['admin_logged_in'] = True
-            return redirect(url_for('index'))
-        else:
-            return render_template('admin_login.html', error="Invalid credentials")
-    
-    return render_template('admin_login.html')
+    if request.method == "POST":
+        admin_username = request.form["username"]
+        admin_password = request.form["password"]
 
-@app.route('/logout')
+        if admin_username == "admin" and admin_password == "password":
+            session["admin_logged_in"] = True
+            return redirect(url_for("index"))
+        else:
+            return render_template("admin_login.html", error="Invalid credentials")
+
+    return render_template("admin_login.html")
+
+
+@app.route("/logout")
 def logout():
-    session.pop('admin_logged_in', None)
-    return redirect(url_for('index'))
+    session.pop("admin_logged_in", None)
+    return redirect(url_for("index"))
 
 
 # Koneksi ke database
 def get_db_connection():
     return supabase
 
+
 # Endpoint untuk mencatat akses
-@app.route('/access', methods=['POST'])
+@app.route("/access", methods=["POST"])
 def log_access():
-    user_id = request.json['user_id']
-    locker_id = request.json['locker_id']
-    action = request.json['action']  # action should be 'open' or 'close'
+    user_id = request.json["user_id"]
+    locker_id = request.json["locker_id"]
+    action = request.json["action"]  # action should be 'open' or 'close'
 
     # Get the current local time
-    access_time = datetime.now(local_timezone).strftime('%Y-%m-%d %H:%M:%S')
+    access_time = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S")
 
     data = {
         "user_id": user_id,
         "locker_id": locker_id,
         "access_time": access_time,
-        "action": action
+        "action": action,
     }
 
     # Insert into Supabase database
-    response = supabase.table('access_logs').insert(data).execute()
+    response = supabase.table("access_logs").insert(data).execute()
 
-    return jsonify({'message': 'Access logged successfully!'}), 201
+    return jsonify({"message": "Access logged successfully!"}), 201
 
-@app.route('/register', methods=['GET'])
+
+@app.route("/register", methods=["GET"])
 def show_register():
-    return render_template('register.html')
+    return render_template("register.html")
+
 
 # Route untuk menangani pengiriman data registrasi
-@app.route('/register', methods=['POST'])
+@app.route("/register", methods=["POST"])
 def register_user():
-    username = request.form['username']
-    pin = request.form['pin']
-    rfid_tag = request.form['rfid_tag']
+    username = request.form["username"]
+    pin = request.form["pin"]
+    rfid_tag = request.form["rfid_tag"]
 
-    data = {
-        "username": username,
-        "pin": pin,
-        "rfid_tag": rfid_tag
-    }
+    data = {"username": username, "pin": pin, "rfid_tag": rfid_tag}
 
     # Insert into Supabase database
     try:
-        response = supabase.table('users').insert(data).execute()
-        message = 'User registered successfully!'
-        status = 'success'
+        response = supabase.table("users").insert(data).execute()
+        message = "User registered successfully!"
+        status = "success"
     except Exception as e:
-        message = f'Error: {e}'
-        status = 'error'
+        message = f"Error: {e}"
+        status = "error"
 
-    return render_template('register.html', message=message, status=status)
+    return render_template("register.html", message=message, status=status)
 
 
 def is_valid_rfid(rfid_tag):
-    response = supabase.table('users').select("*").eq('rfid_tag', rfid_tag).execute()
+    response = supabase.table("users").select("*").eq("rfid_tag", rfid_tag).execute()
     return len(response.data) > 0
 
-@app.route('/rfid', methods=['POST'])
+
+@app.route("/rfid", methods=["POST"])
 def rfid_access():
-    rfid_tag = request.form.get('rfid')
+    rfid_tag = request.form.get("rfid")
     if not rfid_tag:
         return jsonify({"status": "error", "message": "No RFID provided"}), 400
 
     # Validate RFID tag
-    user_response = supabase.table('users').select("*").eq('rfid_tag', rfid_tag).execute()
+    user_response = (
+        supabase.table("users").select("*").eq("rfid_tag", rfid_tag).execute()
+    )
     if not user_response.data:
         return jsonify({"status": "error", "message": "RFID not recognized"}), 403
 
     user = user_response.data[0]
-    user_id = user['id']
+    user_id = user["id"]
     print(f"RFID Tag: {rfid_tag}, User ID: {user_id}")
 
     # Get current local time for logging
-    access_time = datetime.now(local_timezone).strftime('%Y-%m-%d %H:%M:%S')
+    access_time = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S")
 
     # Check if user already has an assigned locker
-    assigned_locker_response = supabase.table('lockers').select("*").eq('user_id', user_id).eq('status', 'occupied').execute()
-    assigned_locker = assigned_locker_response.data[0] if assigned_locker_response.data else None
+    assigned_locker_response = (
+        supabase.table("lockers")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("status", "occupied")
+        .execute()
+    )
+    assigned_locker = (
+        assigned_locker_response.data[0] if assigned_locker_response.data else None
+    )
 
     if assigned_locker:
         # User is releasing an occupied locker
-        locker_id = assigned_locker['id']
-        locker_number = assigned_locker['locker_number']
+        locker_id = assigned_locker["id"]
+        locker_number = assigned_locker["locker_number"]
 
         # Update locker status and log the action
-        supabase.table('lockers').update({
-            "status": "available",
-            "user_id": None
-        }).eq('id', locker_id).execute()
+        supabase.table("lockers").update({"status": "available", "user_id": None}).eq(
+            "id", locker_id
+        ).execute()
 
-        supabase.table('access_logs').insert({
-            "user_id": user_id,
-            "locker_id": locker_id,
-            "access_time": access_time,
-            "action": "close"
-        }).execute()
-
-        return jsonify({"status": "success", "message": f"Locker {locker_number} is now available"})
-
-    else:
-        # Try to assign a new locker if available
-        available_locker_response = supabase.table('lockers').select("*").eq('status', 'available').limit(1).execute()
-        if available_locker_response.data:
-            available_locker = available_locker_response.data[0]
-            locker_id = available_locker['id']
-            locker_number = available_locker['locker_number']
-
-            # Update locker status and log the action
-            supabase.table('lockers').update({
-                "status": "occupied",
-                "user_id": user_id
-            }).eq('id', locker_id).execute()
-
-            supabase.table('access_logs').insert({
+        supabase.table("access_logs").insert(
+            {
                 "user_id": user_id,
                 "locker_id": locker_id,
                 "access_time": access_time,
-                "action": "open"
-            }).execute()
+                "action": "close",
+            }
+        ).execute()
 
-            return jsonify({"status": "success", "message": f"Locker {locker_number} is now assigned to you"})
+        return jsonify(
+            {"status": "success", "message": f"Locker {locker_number} is now available"}
+        )
+
+    else:
+        # Try to assign a new locker if available
+        available_locker_response = (
+            supabase.table("lockers")
+            .select("*")
+            .eq("status", "available")
+            .limit(1)
+            .execute()
+        )
+        if available_locker_response.data:
+            available_locker = available_locker_response.data[0]
+            locker_id = available_locker["id"]
+            locker_number = available_locker["locker_number"]
+
+            # Update locker status and log the action
+            supabase.table("lockers").update(
+                {"status": "occupied", "user_id": user_id}
+            ).eq("id", locker_id).execute()
+
+            supabase.table("access_logs").insert(
+                {
+                    "user_id": user_id,
+                    "locker_id": locker_id,
+                    "access_time": access_time,
+                    "action": "open",
+                }
+            ).execute()
+
+            return jsonify(
+                {
+                    "status": "success",
+                    "message": f"Locker {locker_number} is now assigned to you",
+                }
+            )
 
         else:
             # No lockers are available
-            return jsonify({"status": "error", "message": "Locker is currently occupied by another user"}), 403
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "Locker is currently occupied by another user",
+                    }
+                ),
+                403,
+            )
 
 
-        
-@app.route('/pin_access', methods=['POST'])
+@app.route("/pin_access", methods=["POST"])
 def pin_access():
-    pin = request.form.get('pin')
+    pin = request.form.get("pin")
     if not pin:
         return jsonify({"status": "error", "message": "No PIN provided"}), 400
 
     try:
         # Validate PIN and fetch user details
-        user_response = supabase.table('users').select('*').eq('pin', pin).execute()
+        user_response = supabase.table("users").select("*").eq("pin", pin).execute()
         if not user_response.data:
             return jsonify({"status": "error", "message": "PIN not recognized"}), 403
 
         user = user_response.data[0]
-        user_id = user['id']
+        user_id = user["id"]
         print(f"PIN: {pin}, User ID: {user_id}")
 
         # Check for a locker assigned to the user
-        locker_response = supabase.table('lockers').select('*').eq('user_id', user_id).execute()
+        locker_response = (
+            supabase.table("lockers").select("*").eq("user_id", user_id).execute()
+        )
         locker = locker_response.data[0] if locker_response.data else None
 
         # Get the current local time for access logs
-        access_time = datetime.now(local_timezone).strftime('%Y-%m-%d %H:%M:%S')
+        access_time = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S")
 
         if locker:
-            locker_id = locker['id']
-            locker_number = locker['locker_number']
+            locker_id = locker["id"]
+            locker_number = locker["locker_number"]
 
-            if locker['status'] == 'available':
+            if locker["status"] == "available":
                 # Occupy the locker
-                supabase.table('lockers').update({
-                    'status': 'occupied',
-                    'user_id': user_id
-                }).eq('id', locker_id).execute()
+                supabase.table("lockers").update(
+                    {"status": "occupied", "user_id": user_id}
+                ).eq("id", locker_id).execute()
 
                 # Log the access
-                supabase.table('access_logs').insert({
-                    'user_id': user_id,
-                    'locker_id': locker_id,
-                    'access_time': access_time,
-                    'action': 'open'
-                }).execute()
+                supabase.table("access_logs").insert(
+                    {
+                        "user_id": user_id,
+                        "locker_id": locker_id,
+                        "access_time": access_time,
+                        "action": "open",
+                    }
+                ).execute()
 
                 message = f"Locker {locker_number} is now occupied by you"
 
-            elif locker['status'] == 'occupied' and locker['user_id'] == user_id:
+            elif locker["status"] == "occupied" and locker["user_id"] == user_id:
                 # Release the locker
-                supabase.table('lockers').update({
-                    'status': 'available',
-                    'user_id': None
-                }).eq('id', locker_id).execute()
+                supabase.table("lockers").update(
+                    {"status": "available", "user_id": None}
+                ).eq("id", locker_id).execute()
 
                 # Log the access
-                supabase.table('access_logs').insert({
-                    'user_id': user_id,
-                    'locker_id': locker_id,
-                    'access_time': access_time,
-                    'action': 'close'
-                }).execute()
+                supabase.table("access_logs").insert(
+                    {
+                        "user_id": user_id,
+                        "locker_id": locker_id,
+                        "access_time": access_time,
+                        "action": "close",
+                    }
+                ).execute()
 
                 message = f"Locker {locker_number} is now available"
 
@@ -238,65 +285,84 @@ def pin_access():
 
         else:
             # No lockers available for the user
-            available_locker_response = supabase.table('lockers').select('*').eq('status', 'available').limit(1).execute()
+            available_locker_response = (
+                supabase.table("lockers")
+                .select("*")
+                .eq("status", "available")
+                .limit(1)
+                .execute()
+            )
             if available_locker_response.data:
                 available_locker = available_locker_response.data[0]
-                locker_id = available_locker['id']
-                locker_number = available_locker['locker_number']
+                locker_id = available_locker["id"]
+                locker_number = available_locker["locker_number"]
 
                 # Assign the locker to the user
-                supabase.table('lockers').update({
-                    'status': 'occupied',
-                    'user_id': user_id
-                }).eq('id', locker_id).execute()
+                supabase.table("lockers").update(
+                    {"status": "occupied", "user_id": user_id}
+                ).eq("id", locker_id).execute()
 
                 # Log the access
-                supabase.table('access_logs').insert({
-                    'user_id': user_id,
-                    'locker_id': locker_id,
-                    'access_time': access_time,
-                    'action': 'open'
-                }).execute()
+                supabase.table("access_logs").insert(
+                    {
+                        "user_id": user_id,
+                        "locker_id": locker_id,
+                        "access_time": access_time,
+                        "action": "open",
+                    }
+                ).execute()
 
-                return jsonify({"status": "success", "message": f"Locker {locker_number} is now assigned to you"})
+                return jsonify(
+                    {
+                        "status": "success",
+                        "message": f"Locker {locker_number} is now assigned to you",
+                    }
+                )
             else:
-                return jsonify({"status": "error", "message": "No available lockers"}), 403
+                return (
+                    jsonify({"status": "error", "message": "No available lockers"}),
+                    403,
+                )
 
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-        
-@app.route('/view_users')
+@app.route("/view_users")
 def view_users():
-    response = supabase.table('users').select('*').execute()
+    response = supabase.table("users").select("*").execute()
     users = response.data
-    return render_template('view_users.html', users=users)
+    return render_template("view_users.html", users=users)
 
-@app.route('/view_lockers')
+
+@app.route("/view_lockers")
 def view_lockers():
-    response = supabase.table('lockers').select('*').execute()
+    response = supabase.table("lockers").select("*").execute()
     lockers = response.data
-    return render_template('view_lockers.html', lockers=lockers)
+    return render_template("view_lockers.html", lockers=lockers)
 
 
-@app.route('/monitoring', methods=['GET'])
+@app.route("/monitoring", methods=["GET"])
 def monitoring():
     # Get filter parameters from the request
-    user_filter = request.args.get('user')
-    status_filter = request.args.get('status')
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    locker_number_filter = request.args.get('locker_number')
-    page = request.args.get('page', default=1, type=int)
+    user_filter = request.args.get("user")
+    status_filter = request.args.get("status")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    locker_number_filter = request.args.get("locker_number")
+    page = request.args.get("page", default=1, type=int)
     per_page = 8
 
     # Base query with relationships
-    query = supabase.table("access_logs").select(
-        "locker_id, user_id, access_time, action, "
-        "lockers(locker_number), users(username, rfid_tag)"
-    ).order("access_time", desc=True)  # Order by access_time descending
+    query = (
+        supabase.table("access_logs")
+        .select(
+            "locker_id, user_id, access_time, action, "
+            "lockers(locker_number), users(username, rfid_tag)"
+        )
+        .order("access_time", desc=True)
+    )  # Order by access_time descending
 
     # Apply filters
     if user_filter:
@@ -325,7 +391,9 @@ def monitoring():
     # Separate query for counting total matching records
     count_query = supabase.table("access_logs").select("id", count="exact")
     if user_filter:
-        user_data = supabase.table("users").select("id").eq("username", user_filter).execute()
+        user_data = (
+            supabase.table("users").select("id").eq("username", user_filter).execute()
+        )
         if user_data.data:
             user_id = user_data.data[0]["id"]
             count_query = count_query.eq("user_id", user_id)
@@ -336,7 +404,12 @@ def monitoring():
     if end_date:
         count_query = count_query.lte("access_time", f"{end_date} 23:59:59")
     if locker_number_filter:
-        locker_data = supabase.table("lockers").select("id").eq("locker_number", locker_number_filter).execute()
+        locker_data = (
+            supabase.table("lockers")
+            .select("id")
+            .eq("locker_number", locker_number_filter)
+            .execute()
+        )
         if locker_data.data:
             locker_id = locker_data.data[0]["id"]
             count_query = count_query.eq("locker_id", locker_id)
@@ -352,179 +425,187 @@ def monitoring():
         user_data = record.get("users") or {}
         locker_data = record.get("lockers") or {}
 
-        monitoring_data.append({
-            "locker_number": locker_data.get("locker_number", "Unknown"),
-            "username": user_data.get("username", "Unknown"),
-            "rfid_tag": user_data.get("rfid_tag", "Unknown"),
-            "access_time": record["access_time"],
-            "action": record["action"],
-        })
+        monitoring_data.append(
+            {
+                "locker_number": locker_data.get("locker_number", "Unknown"),
+                "username": user_data.get("username", "Unknown"),
+                "rfid_tag": user_data.get("rfid_tag", "Unknown"),
+                "access_time": record["access_time"],
+                "action": record["action"],
+            }
+        )
 
     # Render the monitoring page with the filtered data
     return render_template(
-        'monitoring.html',
+        "monitoring.html",
         monitoring_data=monitoring_data,
         page=page,
-        total_pages=total_pages
+        total_pages=total_pages,
     )
 
 
-
 # Endpoint untuk menambahkan loker
-@app.route('/add_locker', methods=['GET', 'POST'])
+@app.route("/add_locker", methods=["GET", "POST"])
 def add_locker():
-    if request.method == 'POST':
-        locker_number = request.form['locker_number']
+    if request.method == "POST":
+        locker_number = request.form["locker_number"]
 
         try:
-            response = supabase.table('lockers').insert({
-                'locker_number': locker_number,
-                'status': 'available'
-            }).execute()
+            response = (
+                supabase.table("lockers")
+                .insert({"locker_number": locker_number, "status": "available"})
+                .execute()
+            )
             if response.error:
-                flash('Locker number already exists!', 'error')
+                flash("Locker number already exists!", "error")
             else:
-                flash('Locker added successfully!', 'success')
+                flash("Locker added successfully!", "success")
         except Exception as e:
-            flash(f'Error adding locker: {e}', 'error')
+            flash(f"Error adding locker: {e}", "error")
 
-        return render_template('add_locker.html')
+        return render_template("add_locker.html")
 
-    return render_template('add_locker.html')
+    return render_template("add_locker.html")
+
 
 # CRUD for Users
-@app.route('/users', methods=['GET', 'POST'])
+@app.route("/users", methods=["GET", "POST"])
 def manage_users():
-    if request.method == 'POST':
-        username = request.form['username']
-        pin = request.form['pin']
-        rfid_tag = request.form['rfid_tag']
+    if request.method == "POST":
+        username = request.form["username"]
+        pin = request.form["pin"]
+        rfid_tag = request.form["rfid_tag"]
         try:
-            response = supabase.table('users').insert({
-                'username': username,
-                'pin': pin,
-                'rfid_tag': rfid_tag
-            }).execute()
+            response = (
+                supabase.table("users")
+                .insert({"username": username, "pin": pin, "rfid_tag": rfid_tag})
+                .execute()
+            )
             if response.error:
-                flash('Username or RFID tag already exists!', 'error')
+                flash("Username or RFID tag already exists!", "error")
             else:
-                flash('User added successfully!', 'success')
+                flash("User added successfully!", "success")
         except Exception as e:
-            flash(f'Error adding user: {e}', 'error')
+            flash(f"Error adding user: {e}", "error")
 
-    response = supabase.table('users').select('*').execute()
+    response = supabase.table("users").select("*").execute()
     users = response.data if response.data else []
-    return render_template('view_users.html', users=users)
+    return render_template("view_users.html", users=users)
 
-@app.route('/users/update/<int:user_id>', methods=['GET', 'POST'])
+
+@app.route("/users/update/<int:user_id>", methods=["GET", "POST"])
 def update_user(user_id):
-    if request.method == 'POST':
-        username = request.form['username']
-        pin = request.form['pin']
-        rfid_tag = request.form['rfid_tag']
+    if request.method == "POST":
+        username = request.form["username"]
+        pin = request.form["pin"]
+        rfid_tag = request.form["rfid_tag"]
         try:
-            supabase.table('users').update({
-                'username': username,
-                'pin': pin,
-                'rfid_tag': rfid_tag
-            }).eq('id', user_id).execute()
-            flash('User updated successfully!', 'success')
+            supabase.table("users").update(
+                {"username": username, "pin": pin, "rfid_tag": rfid_tag}
+            ).eq("id", user_id).execute()
+            flash("User updated successfully!", "success")
         except Exception as e:
-            flash(f'Error updating user: {e}', 'error')
-        return redirect(url_for('manage_users'))
+            flash(f"Error updating user: {e}", "error")
+        return redirect(url_for("manage_users"))
 
-    response = supabase.table('users').select('*').eq('id', user_id).execute()
+    response = supabase.table("users").select("*").eq("id", user_id).execute()
     user = response.data[0] if response.data else None
     if not user:
-        flash('User not found!', 'error')
-        return redirect(url_for('manage_users'))
+        flash("User not found!", "error")
+        return redirect(url_for("manage_users"))
 
-    return render_template('update_user.html', user=user)
+    return render_template("update_user.html", user=user)
 
-@app.route('/users/delete/<int:user_id>', methods=['POST'])
+
+@app.route("/users/delete/<int:user_id>", methods=["POST"])
 def delete_user(user_id):
     try:
-        supabase.table('users').delete().eq('id', user_id).execute()
-        flash('User deleted successfully!', 'success')
+        supabase.table("users").delete().eq("id", user_id).execute()
+        flash("User deleted successfully!", "success")
     except Exception as e:
-        flash(f'Error deleting user: {e}', 'error')
-    return redirect(url_for('manage_users'))
+        flash(f"Error deleting user: {e}", "error")
+    return redirect(url_for("manage_users"))
+
 
 # CRUD for Lockers
-@app.route('/lockers', methods=['GET', 'POST'])
+@app.route("/lockers", methods=["GET", "POST"])
 def manage_lockers():
-    if request.method == 'POST':
-        locker_number = request.form['locker_number']
+    if request.method == "POST":
+        locker_number = request.form["locker_number"]
         try:
             # Insert new locker into the database
-            response = supabase.table('lockers').insert({
-                'locker_number': locker_number,
-                'status': 'available'
-            }).execute()
+            response = (
+                supabase.table("lockers")
+                .insert({"locker_number": locker_number, "status": "available"})
+                .execute()
+            )
             if response.error:
-                flash('Locker number already exists!', 'error')
+                flash("Locker number already exists!", "error")
             else:
-                flash('Locker added successfully!', 'success')
+                flash("Locker added successfully!", "success")
         except Exception as e:
-            flash(f'Error adding locker: {e}', 'error')
+            flash(f"Error adding locker: {e}", "error")
 
     # Fetch all lockers from the database
     try:
-        response = supabase.table('lockers').select('*').execute()
+        response = supabase.table("lockers").select("*").execute()
         lockers = response.data if response.data else []
     except Exception as e:
         lockers = []
-        flash(f'Error retrieving lockers: {e}', 'error')
+        flash(f"Error retrieving lockers: {e}", "error")
 
-    return render_template('view_lockers.html', lockers=lockers)
+    return render_template("view_lockers.html", lockers=lockers)
 
 
-@app.route('/lockers/update/<int:locker_id>', methods=['GET', 'POST'])
+@app.route("/lockers/update/<int:locker_id>", methods=["GET", "POST"])
 def update_locker(locker_id):
-    if request.method == 'POST':
-        locker_number = request.form['locker_number']
+    if request.method == "POST":
+        locker_number = request.form["locker_number"]
         try:
             # Update locker details in the database
-            response = supabase.table('lockers').update({
-                'locker_number': locker_number
-            }).eq('id', locker_id).execute()
+            response = (
+                supabase.table("lockers")
+                .update({"locker_number": locker_number})
+                .eq("id", locker_id)
+                .execute()
+            )
             if response.error:
-                flash('Error updating locker!', 'error')
+                flash("Error updating locker!", "error")
             else:
-                flash('Locker updated successfully!', 'success')
-            return redirect(url_for('manage_lockers'))
+                flash("Locker updated successfully!", "success")
+            return redirect(url_for("manage_lockers"))
         except Exception as e:
-            flash(f'Error updating locker: {e}', 'error')
+            flash(f"Error updating locker: {e}", "error")
 
     # Fetch locker details for the given ID
     try:
-        response = supabase.table('lockers').select('*').eq('id', locker_id).execute()
+        response = supabase.table("lockers").select("*").eq("id", locker_id).execute()
         locker = response.data[0] if response.data else None
     except Exception as e:
         locker = None
-        flash(f'Error retrieving locker: {e}', 'error')
+        flash(f"Error retrieving locker: {e}", "error")
 
     if not locker:
-        flash('Locker not found!', 'error')
-        return redirect(url_for('manage_lockers'))
+        flash("Locker not found!", "error")
+        return redirect(url_for("manage_lockers"))
 
-    return render_template('update_locker.html', locker=locker)
+    return render_template("update_locker.html", locker=locker)
 
 
-@app.route('/lockers/delete/<int:locker_id>', methods=['POST'])
+@app.route("/lockers/delete/<int:locker_id>", methods=["POST"])
 def delete_locker(locker_id):
     try:
         # Delete locker from the database
-        response = supabase.table('lockers').delete().eq('id', locker_id).execute()
+        response = supabase.table("lockers").delete().eq("id", locker_id).execute()
         if response.error:
-            flash('Error deleting locker!', 'error')
+            flash("Error deleting locker!", "error")
         else:
-            flash('Locker deleted successfully!', 'success')
+            flash("Locker deleted successfully!", "success")
     except Exception as e:
-        flash(f'Error deleting locker: {e}', 'error')
+        flash(f"Error deleting locker: {e}", "error")
 
-    return redirect(url_for('manage_lockers'))
+    return redirect(url_for("manage_lockers"))
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
